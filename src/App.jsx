@@ -1,255 +1,78 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Activity, ArrowDownUp, BriefcaseBusiness, CalendarDays, Check, ChevronDown,
-  CircleHelp, Download, ExternalLink, FileUp, Filter, LayoutDashboard, MapPin,
-  Menu, MoreHorizontal, Pencil, Plus, Search, Trash2, TrendingUp, X
-} from 'lucide-react';
+import { Activity, ArrowDownUp, BriefcaseBusiness, CalendarDays, Check, ChevronDown, CircleHelp, Download, ExternalLink, FileUp, Filter, LayoutDashboard, LogOut, MapPin, Menu, Pencil, Plus, Search, Trash2, TrendingUp, UserRound, X, Eye, EyeOff, LockKeyhole, Mail, Building2, BookmarkCheck } from 'lucide-react';
 
-const STORAGE_KEY = 'applyflow_applications_v1';
-const STATUSES = ['Applied', 'Shortlisted', 'Interview', 'Selected', 'Rejected'];
-const EMPTY_FORM = {
-  company: '', role: '', location: '', type: 'Full-time', status: 'Applied',
-  appliedDate: new Date().toISOString().slice(0, 10), followUpDate: '',
-  salary: '', jobUrl: '', notes: ''
-};
-
-function loadApplications() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+const ACCOUNTS_KEY='applyflow_accounts_v1';
+const SESSION_KEY='applyflow_session_v1';
+const JOBS=[
+ {id:'job-01',company:'Zoho',role:'Frontend Developer',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Entry level',mode:'Hybrid',salary:'₹3–6 LPA',skills:'React, JavaScript, HTML, CSS',description:'Build responsive product interfaces and work with a collaborative engineering team.'},
+ {id:'job-02',company:'Freshworks',role:'Associate Software Engineer',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Entry level',mode:'Hybrid',salary:'₹4–7 LPA',skills:'JavaScript, React, REST APIs',description:'Contribute to customer-focused SaaS products with guidance from senior engineers.'},
+ {id:'job-03',company:'TCS',role:'Graduate Trainee – IT',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Fresher',mode:'On-site',salary:'₹3–4.5 LPA',skills:'Programming, SQL, problem solving',description:'Start your IT career supporting application development and enterprise projects.'},
+ {id:'job-04',company:'Cognizant',role:'Programmer Analyst Trainee',location:'Coimbatore, Tamil Nadu',type:'Full-time',level:'Fresher',mode:'Hybrid',salary:'₹3.5–5 LPA',skills:'Python, SQL, JavaScript',description:'Work on software delivery tasks, testing and application support.'},
+ {id:'job-05',company:'PayPal',role:'Software Engineer Intern',location:'Bengaluru, Karnataka',type:'Internship',level:'Internship',mode:'Hybrid',salary:'₹25k–40k/month',skills:'JavaScript, APIs, data structures',description:'Learn modern engineering practices while contributing to product features.'},
+ {id:'job-06',company:'Wipro',role:'Project Engineer',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Fresher',mode:'On-site',salary:'₹3.5–4.5 LPA',skills:'Python, SQL, communication',description:'Support software implementation, development and quality activities.'},
+ {id:'job-07',company:'Accenture',role:'Application Development Associate',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Entry level',mode:'Hybrid',salary:'₹4–5.5 LPA',skills:'React, Python, SQL',description:'Assist teams in designing, building and maintaining business applications.'},
+ {id:'job-08',company:'M2P Fintech',role:'Junior React Developer',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Entry level',mode:'On-site',salary:'₹3–5 LPA',skills:'React, JavaScript, CSS, Git',description:'Create clean user interfaces for fintech products and internal tools.'},
+ {id:'job-09',company:'HCLTech',role:'Software Engineer – Graduate',location:'Madurai, Tamil Nadu',type:'Full-time',level:'Fresher',mode:'Hybrid',salary:'₹3–4.5 LPA',skills:'JavaScript, Python, MySQL',description:'Join an engineering team working on enterprise software solutions.'},
+ {id:'job-10',company:'Chargebee',role:'QA / Software Engineer Trainee',location:'Chennai, Tamil Nadu',type:'Full-time',level:'Fresher',mode:'Hybrid',salary:'₹3–5 LPA',skills:'Testing, APIs, SQL, JavaScript',description:'Help validate product quality and collaborate with developers.'}
+];
+const STATUSES=['Applied','Shortlisted','Interview','Selected','Rejected'];
+const EMPTY_FORM={company:'',role:'',location:'',type:'Full-time',status:'Applied',appliedDate:new Date().toISOString().slice(0,10),followUpDate:'',salary:'',jobUrl:'',notes:''};
+const EMPTY_PROFILE={fullName:'',email:'',phone:'',city:'',headline:'',experience:'Fresher',totalExperience:'',education:'',specialization:'',graduationYear:'',skills:'',preferredRoles:'',preferredLocations:'',workMode:'Any',employmentType:'Full-time',expectedSalary:'',noticePeriod:'Immediate',linkedin:'',portfolio:''};
+const read=(key,fallback)=>{try{const x=JSON.parse(localStorage.getItem(key));return x??fallback}catch{return fallback}};
+const userKey=(email)=>'applyflow_user_'+email.toLowerCase().trim();
+function formatDate(v){if(!v)return '—';const d=new Date(v+'T00:00:00');return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}
+async function hashPassword(password){const bytes=new TextEncoder().encode(password);const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function App(){
+ const [session,setSession]=useState(()=>localStorage.getItem(SESSION_KEY)||'');
+ const [accounts,setAccounts]=useState(()=>read(ACCOUNTS_KEY,[]));
+ const [authMode,setAuthMode]=useState('login');
+ const [authForm,setAuthForm]=useState({name:'',email:'',password:'',confirm:'',show:false});
+ const [authError,setAuthError]=useState('');
+ const [profile,setProfile]=useState(EMPTY_PROFILE);
+ const [profileOpen,setProfileOpen]=useState(false);
+ const [profileComplete,setProfileComplete]=useState(false);
+ const [applications,setApplications]=useState([]);
+ const [tab,setTab]=useState('Dashboard');
+ const [query,setQuery]=useState('');
+ const [statusFilter,setStatusFilter]=useState('All');
+ const [sortOrder,setSortOrder]=useState('newest');
+ const [modalOpen,setModalOpen]=useState(false);
+ const [editingId,setEditingId]=useState(null);
+ const [form,setForm]=useState(EMPTY_FORM);
+ const [toast,setToast]=useState('');
+ const [mobileNavOpen,setMobileNavOpen]=useState(false);
+ const [jobFilter,setJobFilter]=useState('All');
+ const importRef=useRef(null);
+ const notify=(m)=>setToast(m);
+ useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(t)},[toast]);
+ useEffect(()=>{localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(accounts))},[accounts]);
+ useEffect(()=>{if(!session)return;const data=read(userKey(session),{profile:EMPTY_PROFILE,applications:[]});setProfile({...EMPTY_PROFILE,...data.profile});setApplications(Array.isArray(data.applications)?data.applications:[]);setProfileComplete(Boolean(data.profile?.fullName&&data.profile?.phone&&data.profile?.education&&data.profile?.skills));},[session]);
+ useEffect(()=>{if(session){try{localStorage.setItem(userKey(session),JSON.stringify({profile,applications}))}catch{notify('Browser storage is full. Export your applications as a backup.')}}},[session,profile,applications]);
+ function setAuth(k,v){setAuthForm(s=>({...s,[k]:v}));setAuthError('')}
+ async function submitAuth(e){e.preventDefault();setAuthError('');const email=authForm.email.trim().toLowerCase();if(!email||!/^\S+@\S+\.\S+$/.test(email)){setAuthError('Enter a valid email address.');return}
+ if(authMode==='register'){if(!authForm.name.trim()){setAuthError('Enter your full name.');return}if(authForm.password.length<8){setAuthError('Use at least 8 characters for your password.');return}if(authForm.password!==authForm.confirm){setAuthError('Passwords do not match.');return}if(accounts.some(a=>a.email===email)){setAuthError('An account with this email already exists.');return}const account={name:authForm.name.trim(),email,passwordHash:await hashPassword(authForm.password)};setAccounts(a=>[...a,account]);localStorage.setItem(userKey(email),JSON.stringify({profile:{...EMPTY_PROFILE,fullName:account.name,email},applications:[]}));localStorage.setItem(SESSION_KEY,email);setSession(email);setProfile({...EMPTY_PROFILE,fullName:account.name,email});setProfileOpen(true);setTab('Dashboard');return}
+ const account=accounts.find(a=>a.email===email);if(!account||account.passwordHash!==await hashPassword(authForm.password)){setAuthError('Email or password is incorrect.');return}localStorage.setItem(SESSION_KEY,email);setSession(email);setTab('Dashboard')}
+ async function resetPassword(e){e.preventDefault();const email=authForm.email.trim().toLowerCase();const account=accounts.find(a=>a.email===email);if(!account){setAuthError('No account found for this email.');return}if(authForm.password.length<8){setAuthError('New password must be at least 8 characters.');return}if(authForm.password!==authForm.confirm){setAuthError('Passwords do not match.');return}setAccounts(a=>a.map(x=>x.email===email?{...x,passwordHash:awaitHash}:x));}
+ const stats=useMemo(()=>({total:applications.length,applied:applications.filter(a=>a.status==='Applied').length,progress:applications.filter(a=>['Shortlisted','Interview'].includes(a.status)).length,selected:applications.filter(a=>a.status==='Selected').length}),[applications]);
+ const filtered=useMemo(()=>{const term=query.trim().toLowerCase();return applications.filter(a=>statusFilter==='All'||a.status===statusFilter).filter(a=>!term||[a.company,a.role,a.location].some(v=>(v||'').toLowerCase().includes(term))).sort((a,b)=>sortOrder==='newest'?(b.appliedDate||'').localeCompare(a.appliedDate||''):(a.appliedDate||'').localeCompare(b.appliedDate||''))},[applications,query,statusFilter,sortOrder]);
+ const appliedJobIds=new Set(applications.map(a=>a.jobId).filter(Boolean));
+ function logout(){localStorage.removeItem(SESSION_KEY);setSession('');setAuthMode('login');setAuthForm({name:'',email:'',password:'',confirm:'',show:false});setTab('Dashboard')}
+ function openAdd(){setEditingId(null);setForm({...EMPTY_FORM,appliedDate:new Date().toISOString().slice(0,10)});setModalOpen(true)}
+ function openEdit(item){setEditingId(item.id);setForm({...EMPTY_FORM,...item});setModalOpen(true)}
+ function saveApplication(e){e.preventDefault();if(!form.company.trim()||!form.role.trim()){notify('Enter company and role.');return}const record={...form,company:form.company.trim(),role:form.role.trim(),notes:form.notes.trim(),id:editingId||(crypto.randomUUID?.()||String(Date.now())),updatedAt:new Date().toISOString()};setApplications(a=>editingId?a.map(x=>x.id===editingId?record:x):[record,...a]);setModalOpen(false);notify(editingId?'Application updated.':'Application added.')}
+ function applyJob(job){if(!profileComplete){setProfileOpen(true);notify('Complete your career profile before applying.');return}if(appliedJobIds.has(job.id)){notify('You have already applied to this job.');return}setApplications(a=>[{...EMPTY_FORM,id:crypto.randomUUID?.()||String(Date.now()),jobId:job.id,company:job.company,role:job.role,location:job.location,type:job.type,status:'Applied',salary:job.salary,appliedDate:new Date().toISOString().slice(0,10),notes:'Applied through ApplyFlow · Static demo listing'} ,...a]);setTab('Jobs');notify('Application submitted! You can track it in Dashboard.')}
+ function saveProfile(e){e.preventDefault();if(!profile.fullName.trim()||!profile.phone.trim()||!profile.education.trim()||!profile.skills.trim()){notify('Please complete the required profile fields.');return}setProfileComplete(true);setProfileOpen(false);notify('Career profile saved.')}
+ function exportData(){const blob=new Blob([JSON.stringify({profile,applications},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='applyflow-backup.json';a.click();URL.revokeObjectURL(url);notify('Backup downloaded.')}
+ function importData(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(String(r.result));if(!Array.isArray(d.applications))throw Error();setApplications(d.applications);if(d.profile)setProfile({...EMPTY_PROFILE,...d.profile});notify('Backup restored.')}catch{notify('Invalid ApplyFlow backup file.')}finally{e.target.value=''}};r.readAsText(file)}
+ if(!session)return <div className="auth-screen"><div className="auth-brand"><span className="brand-mark">A</span> applyflow</div><div className="auth-card"><div className="eyebrow">YOUR CAREER JOURNEY STARTS HERE</div><h1>{authMode==='login'?'Welcome back':authMode==='register'?'Create your account':'Reset your password'}</h1><p className="auth-subtitle">{authMode==='login'?'Sign in to manage your job search.':authMode==='register'?'Create a free profile to explore opportunities.':'Set a new password for your account.'}</p><form onSubmit={authMode==='forgot'?resetPassword:submitAuth}>{authMode==='register'&&<label>Full name<input required maxLength="80" value={authForm.name} onChange={e=>setAuth('name',e.target.value)} placeholder="Your full name"/></label>}<label>Email address<input required type="email" value={authForm.email} onChange={e=>setAuth('email',e.target.value)} placeholder="you@example.com"/></label>{authMode!=='forgot'&&<label>Password<div className="password-wrap"><input required type={authForm.show?'text':'password'} value={authForm.password} onChange={e=>setAuth('password',e.target.value)} placeholder="At least 8 characters"/><button type="button" aria-label="Show or hide password" onClick={()=>setAuth('show',!authForm.show)}>{authForm.show?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>}{(authMode==='register'||authMode==='forgot')&&<label>{authMode==='forgot'?'Confirm new password':'Confirm password'}<input required type={authForm.show?'text':'password'} value={authForm.confirm} onChange={e=>setAuth('confirm',e.target.value)} placeholder="Enter password again"/></label>}{authError&&<div className="auth-error" role="alert">{authError}</div>}<button className="primary-button auth-submit" type="submit">{authMode==='login'?'Sign in':authMode==='register'?'Create account':'Update password'}</button></form>{authMode==='login'&&<button className="text-link" onClick={()=>{setAuthMode('forgot');setAuthError('')}}>Forgot password?</button>}<div className="auth-switch">{authMode==='login'?"Don't have an account?":'Already have an account?'} <button onClick={()=>{setAuthMode(authMode==='login'?'register':'login');setAuthError('')}}>{authMode==='login'?'Register':'Sign in'}</button></div><div className="privacy-note">Demo app: account and profile information are stored only in this browser. This is not secure production authentication. Password reset is local and does not send an email.</div></div></div>;
+ const statCards=[{label:'Total applications',value:stats.total,icon:BriefcaseBusiness,tone:'violet'},{label:'Applied',value:stats.applied,icon:Activity,tone:'blue'},{label:'In progress',value:stats.progress,icon:TrendingUp,tone:'amber'},{label:'Selected',value:stats.selected,icon:Check,tone:'green'}];
+ const jobList=JOBS.filter(j=>(jobFilter==='All'||j.type===jobFilter)&&(!query||[j.company,j.role,j.location,j.skills].some(v=>v.toLowerCase().includes(query.toLowerCase()))));
+ return <div className="app-shell"><aside className={`sidebar ${mobileNavOpen?'sidebar-open':''}`}><div className="brand"><span className="brand-mark">A</span><span>applyflow</span></div><div className="nav-caption">WORKSPACE</div>{[['Dashboard',LayoutDashboard],['Find Jobs',BriefcaseBusiness],['My Profile',UserRound]].map(([label,Icon])=><button key={label} className={`nav-item ${tab===label?'active':''}`} onClick={()=>{setTab(label);setMobileNavOpen(false);if(label==='My Profile')setProfileOpen(true)}}><Icon size={18}/>{label}</button>)}<div className="sidebar-bottom"><div className="tip-card"><span className="tip-icon"><CircleHelp size={17}/></span><strong>Keep moving forward</strong><p>Small steps every day bring you closer to the right opportunity.</p></div><div className="local-note"><span className="live-dot"/> Your data stays on this device</div></div></aside>{mobileNavOpen&&<button className="mobile-scrim" aria-label="Close menu" onClick={()=>setMobileNavOpen(false)}/>}<main className="main-content"><header className="topbar"><button className="icon-button mobile-menu" aria-label="Open menu" onClick={()=>setMobileNavOpen(v=>!v)}><Menu size={20}/></button><div className="breadcrumb">Workspace <span>/</span> <b>{tab}</b></div><div className="topbar-right"><span className="today-label"><CalendarDays size={15}/> {new Date().toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}</span><button className="profile-chip" onClick={()=>setProfileOpen(true)}>{profile.fullName?.slice(0,1)||'U'}</button><button className="icon-button" aria-label="Sign out" title="Sign out" onClick={logout}><LogOut size={17}/></button></div></header><section className="page-wrap">
+ {tab==='Dashboard'&&<><div className="welcome-row"><div><div className="eyebrow">YOUR CAREER OVERVIEW</div><h1>Job applications</h1><p className="subtitle">Welcome, {profile.fullName||'there'} — keep track of every opportunity.</p></div><button className="primary-button" onClick={openAdd}><Plus size={18}/> Add application</button></div><div className="stats-grid">{statCards.map(({label,value,icon:Icon,tone})=><article className="stat-card" key={label}><div className={`stat-icon ${tone}`}><Icon size={19}/></div><div className="stat-label">{label}</div><div className="stat-value">{value}</div><div className="stat-foot">{label==='In progress'?'Shortlisted + interview':label==='Selected'?'Offers received':label==='Applied'?'Waiting for a response':'Across all statuses'}</div></article>)}</div><section className="table-panel"><div className="panel-heading"><div><h2>Application tracker</h2><p>Manage and review your job search activity.</p></div><div className="data-actions"><button className="soft-button" onClick={exportData}><Download size={16}/> Export</button><button className="soft-button" onClick={()=>importRef.current?.click()}><FileUp size={16}/> Import</button><input ref={importRef} type="file" accept="application/json,.json" hidden onChange={importData}/></div></div><div className="toolbar"><label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role or location..."/></label><label className="select-wrap"><Filter size={15}/><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select><ChevronDown size={14}/></label><button className="soft-button sort-button" onClick={()=>setSortOrder(v=>v==='newest'?'oldest':'newest')}><ArrowDownUp size={15}/>{sortOrder==='newest'?'Newest first':'Oldest first'}</button></div>{filtered.length===0?<div className="empty-state"><div className="empty-icon"><BriefcaseBusiness size={25}/></div><h3>{applications.length?'No matching applications':'Start tracking your journey'}</h3><p>{applications.length?'Try another search or status filter.':'Apply to a job or add an application to see it here.'}</p><button className="primary-button" onClick={()=>setTab('Jobs')}><Search size={16}/> Explore jobs</button></div>:<div className="table-scroll"><table><thead><tr><th>COMPANY & ROLE</th><th>LOCATION</th><th>APPLIED DATE</th><th>STATUS</th><th>FOLLOW-UP</th><th></th></tr></thead><tbody>{filtered.map(item=><tr key={item.id}><td><div className="company-cell"><span className="company-logo">{item.company.slice(0,1).toUpperCase()}</span><span><strong>{item.company}</strong><small>{item.role} · {item.type}</small></span></div></td><td><span className="location-cell"><MapPin size={13}/>{item.location||'—'}</span></td><td>{formatDate(item.appliedDate)}</td><td><span className={`status-pill status-${item.status.toLowerCase()}`}><i/>{item.status}</span></td><td>{formatDate(item.followUpDate)}</td><td><div className="row-actions"><button className="icon-button" aria-label="Edit application" onClick={()=>openEdit(item)}><Pencil size={15}/></button><button className="icon-button danger-hover" aria-label="Delete application" onClick={()=>{if(confirm('Delete this application?')){setApplications(a=>a.filter(x=>x.id!==item.id));notify('Application deleted.')}}}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>}<div className="table-footer"><span>Showing <b>{filtered.length}</b> of <b>{applications.length}</b> applications</span><span>Saved automatically <span className="saved-check"><Check size={12}/></span></span></div></section></>}
+ {tab==='Jobs'&&<><div className="welcome-row"><div><div className="eyebrow">CURATED DEMO LISTINGS</div><h1>Find your next role</h1><p className="subtitle">Explore 10 sample IT opportunities and apply with your career profile.</p></div><span className="job-count"><BriefcaseBusiness size={16}/> {JOBS.length} jobs</span></div><div className="jobs-toolbar"><label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search role, company, skill..."/></label><select value={jobFilter} onChange={e=>setJobFilter(e.target.value)}><option>All</option><option>Full-time</option><option>Internship</option></select></div><div className="jobs-grid">{jobList.map(job=><article className="job-card" key={job.id}><div className="job-card-top"><span className="company-logo"><Building2 size={18}/></span><span className="job-type">{job.type}</span></div><h3>{job.role}</h3><strong className="job-company">{job.company}</strong><div className="job-meta"><span><MapPin size={14}/>{job.location}</span><span>{job.mode} · {job.level}</span></div><p>{job.description}</p><div className="job-skills">{job.skills}</div><div className="job-card-bottom"><strong>{job.salary}</strong><button className={`primary-button ${appliedJobIds.has(job.id)?'applied-button':''}`} disabled={appliedJobIds.has(job.id)} onClick={()=>applyJob(job)}>{appliedJobIds.has(job.id)?<><Check size={15}/> Applied</>:<>Apply now <ExternalLink size={14}/></>}</button></div></article>)}</div>{jobList.length===0&&<div className="empty-state"><h3>No jobs match your search</h3><p>Try another keyword or filter.</p></div>}</>}
+ </section></main>
+ {modalOpen&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setModalOpen(false)}}><section className="modal" role="dialog" aria-modal="true"><div className="modal-header"><div><div className="eyebrow">APPLICATION DETAILS</div><h2>{editingId?'Edit application':'Add application'}</h2></div><button className="icon-button" onClick={()=>setModalOpen(false)}><X size={20}/></button></div><form onSubmit={saveApplication}><div className="form-grid"><label>Company name *<input required value={form.company} onChange={e=>setForm({...form,company:e.target.value})}/></label><label>Job role *<input required value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label>Location<input value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label>Employment type<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>{['Full-time','Internship','Part-time','Contract','Remote'].map(v=><option>{v}</option>)}</select></label><label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>{STATUSES.map(v=><option>{v}</option>)}</select></label><label>Applied date<input type="date" value={form.appliedDate} onChange={e=>setForm({...form,appliedDate:e.target.value})}/></label><label>Follow-up date<input type="date" value={form.followUpDate} onChange={e=>setForm({...form,followUpDate:e.target.value})}/></label><label>Salary<input value={form.salary} onChange={e=>setForm({...form,salary:e.target.value})}/></label><label className="full-span">Notes<textarea rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label></div><div className="modal-actions"><button type="button" className="soft-button" onClick={()=>setModalOpen(false)}>Cancel</button><button className="primary-button"><Check size={16}/> Save application</button></div></form></section></div>}
+ {profileOpen&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setProfileOpen(false)}}><section className="modal profile-modal" role="dialog" aria-modal="true"><div className="modal-header"><div><div className="eyebrow">CAREER PROFILE</div><h2>Tell us about yourself</h2><p className="subtitle">These details help organise your job search. Share only what you are comfortable sharing.</p></div><button className="icon-button" onClick={()=>setProfileOpen(false)}><X size={20}/></button></div><form onSubmit={saveProfile}><div className="form-grid"><label>Full name *<input required maxLength="80" value={profile.fullName} onChange={e=>setProfile({...profile,fullName:e.target.value})}/></label><label>Email address<input type="email" readOnly value={profile.email}/></label><label>Phone number *<input required type="tel" maxLength="20" value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} placeholder="Contact number"/></label><label>Current city *<input required maxLength="80" value={profile.city} onChange={e=>setProfile({...profile,city:e.target.value})} placeholder="City, state"/></label><label className="full-span">Professional headline<input maxLength="120" value={profile.headline} onChange={e=>setProfile({...profile,headline:e.target.value})} placeholder="e.g. BCA graduate | Junior Frontend Developer"/></label><label>Experience level<select value={profile.experience} onChange={e=>setProfile({...profile,experience:e.target.value})}>{['Fresher','Internship','Entry level','Experienced'].map(v=><option>{v}</option>)}</select></label><label>Total experience<input value={profile.totalExperience} onChange={e=>setProfile({...profile,totalExperience:e.target.value})} placeholder="e.g. 3 months internship"/></label><label>Highest education *<input required value={profile.education} onChange={e=>setProfile({...profile,education:e.target.value})} placeholder="e.g. BCA"/></label><label>Specialization / major<input value={profile.specialization} onChange={e=>setProfile({...profile,specialization:e.target.value})} placeholder="e.g. Computer Applications"/></label><label>Graduation year<input inputMode="numeric" maxLength="4" value={profile.graduationYear} onChange={e=>setProfile({...profile,graduationYear:e.target.value})} placeholder="e.g. 2026"/></label><label className="full-span">Key skills *<textarea required rows="2" value={profile.skills} onChange={e=>setProfile({...profile,skills:e.target.value})} placeholder="React, JavaScript, Python, SQL..."/></label><label className="full-span">Preferred job roles<input value={profile.preferredRoles} onChange={e=>setProfile({...profile,preferredRoles:e.target.value})} placeholder="Frontend Developer, Software Engineer"/></label><label className="full-span">Preferred locations<input value={profile.preferredLocations} onChange={e=>setProfile({...profile,preferredLocations:e.target.value})} placeholder="Chennai, Bengaluru, Remote"/></label><label>Preferred work mode<select value={profile.workMode} onChange={e=>setProfile({...profile,workMode:e.target.value})}>{['Any','On-site','Hybrid','Remote'].map(v=><option>{v}</option>)}</select></label><label>Employment type<select value={profile.employmentType} onChange={e=>setProfile({...profile,employmentType:e.target.value})}>{['Full-time','Internship','Part-time','Contract'].map(v=><option>{v}</option>)}</select></label><label>Expected salary (optional)<input value={profile.expectedSalary} onChange={e=>setProfile({...profile,expectedSalary:e.target.value})} placeholder="e.g. 3–5 LPA"/></label><label>Notice period<select value={profile.noticePeriod} onChange={e=>setProfile({...profile,noticePeriod:e.target.value})}>{['Immediate','15 days','30 days','60 days','90 days','Serving notice'].map(v=><option>{v}</option>)}</select></label><label>LinkedIn profile (optional)<input type="url" value={profile.linkedin} onChange={e=>setProfile({...profile,linkedin:e.target.value})} placeholder="https://linkedin.com/in/..."/></label><label>Portfolio / GitHub (optional)<input type="url" value={profile.portfolio} onChange={e=>setProfile({...profile,portfolio:e.target.value})} placeholder="https://..."/></label></div><div className="privacy-note">Privacy note: avoid entering government ID numbers, bank details, passwords, or your full home address. This demo stores your profile locally in this browser and does not send it to employers.</div><div className="modal-actions"><button type="button" className="soft-button" onClick={()=>setProfileOpen(false)}>Cancel</button><button className="primary-button"><Check size={16}/> Save profile</button></div></form></section></div>}
+ {toast&&<div className="toast"><Check size={16}/>{toast}</div>}</div>;
 }
-
-function formatDate(value) {
-  if (!value) return '—';
-  const date = new Date(value + 'T00:00:00');
-  return Number.isNaN(date.getTime())
-    ? '—'
-    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function App() {
-  const [applications, setApplications] = useState(loadApplications);
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [sortOrder, setSortOrder] = useState('newest');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [toast, setToast] = useState('');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const importRef = useRef(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-    } catch {
-      notify('Could not save. Browser storage may be full.');
-    }
-  }, [applications]);
-
-  useEffect(() => {
-    if (!toast) return undefined;
-    const timer = setTimeout(() => setToast(''), 2800);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  function notify(message) { setToast(message); }
-
-  const stats = useMemo(() => ({
-    total: applications.length,
-    applied: applications.filter(a => a.status === 'Applied').length,
-    progress: applications.filter(a => ['Shortlisted', 'Interview'].includes(a.status)).length,
-    selected: applications.filter(a => a.status === 'Selected').length
-  }), [applications]);
-
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return applications
-      .filter(a => statusFilter === 'All' || a.status === statusFilter)
-      .filter(a => !term || [a.company, a.role, a.location].some(v => (v || '').toLowerCase().includes(term)))
-      .sort((a, b) => sortOrder === 'newest'
-        ? (b.appliedDate || '').localeCompare(a.appliedDate || '')
-        : (a.appliedDate || '').localeCompare(b.appliedDate || ''));
-  }, [applications, query, statusFilter, sortOrder]);
-
-  function openAdd() {
-    setEditingId(null);
-    setForm({ ...EMPTY_FORM, appliedDate: new Date().toISOString().slice(0, 10) });
-    setModalOpen(true);
-  }
-
-  function openEdit(item) {
-    setEditingId(item.id);
-    setForm({ ...EMPTY_FORM, ...item });
-    setModalOpen(true);
-  }
-
-  function saveApplication(event) {
-    event.preventDefault();
-    const company = form.company.trim();
-    const role = form.role.trim();
-    if (!company || !role) {
-      notify('Please enter the company and job role.');
-      return;
-    }
-    const record = {
-      ...form,
-      company,
-      role,
-      notes: form.notes.trim(),
-      id: editingId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now())),
-      updatedAt: new Date().toISOString()
-    };
-    setApplications(current => editingId
-      ? current.map(item => item.id === editingId ? record : item)
-      : [record, ...current]);
-    setModalOpen(false);
-    notify(editingId ? 'Application updated.' : 'Application added.');
-  }
-
-  function deleteApplication(id) {
-    if (!window.confirm('Delete this application? This cannot be undone.')) return;
-    setApplications(current => current.filter(item => item.id !== id));
-    notify('Application deleted.');
-  }
-
-  function exportData() {
-    const blob = new Blob([JSON.stringify(applications, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'applyflow-applications.json';
-    anchor.click();
-    URL.revokeObjectURL(url);
-    notify('Your backup is ready.');
-  }
-
-  function importData(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(String(reader.result));
-        if (!Array.isArray(data) || data.some(item => !item || typeof item !== 'object' || !item.company || !item.role)) {
-          throw new Error('Invalid format');
-        }
-        if (!window.confirm('Import these records and replace your current applications?')) return;
-        setApplications(data.map(item => ({ ...EMPTY_FORM, ...item, id: item.id || String(Date.now() + Math.random()) })));
-        notify('Applications imported.');
-      } catch {
-        notify('Could not import. Choose a valid ApplyFlow JSON backup.');
-      } finally {
-        event.target.value = '';
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  const statCards = [
-    { label: 'Total applications', value: stats.total, icon: BriefcaseBusiness, tone: 'violet' },
-    { label: 'Applied', value: stats.applied, icon: Activity, tone: 'blue' },
-    { label: 'In progress', value: stats.progress, icon: TrendingUp, tone: 'amber' },
-    { label: 'Selected', value: stats.selected, icon: Check, tone: 'green' }
-  ];
-
-  return (
-    <div className="app-shell">
-      <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
-        <div className="brand"><span className="brand-mark">A</span><span>applyflow</span></div>
-        <div className="nav-caption">WORKSPACE</div>
-        <button className="nav-item active" onClick={() => setMobileNavOpen(false)}><LayoutDashboard size={18} /> Dashboard</button>
-        <div className="sidebar-bottom">
-          <div className="tip-card">
-            <span className="tip-icon"><CircleHelp size={17} /></span>
-            <strong>Keep moving forward</strong>
-            <p>Small steps every day bring you closer to the right opportunity.</p>
-          </div>
-          <div className="local-note"><span className="live-dot" /> Your data stays on this device</div>
-        </div>
-      </aside>
-
-      {mobileNavOpen && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} />}
-
-      <main className="main-content">
-        <header className="topbar">
-          <button className="icon-button mobile-menu" aria-label="Open menu" onClick={() => setMobileNavOpen(v => !v)}><Menu size={20} /></button>
-          <div className="breadcrumb">Workspace <span>/</span> <b>Dashboard</b></div>
-          <div className="topbar-right"><span className="today-label"><CalendarDays size={15} /> {new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span><span className="avatar">H</span></div>
-        </header>
-
-        <section className="page-wrap">
-          <div className="welcome-row">
-            <div><div className="eyebrow">YOUR CAREER OVERVIEW</div><h1>Job applications</h1><p className="subtitle">Stay organised and keep track of every opportunity.</p></div>
-            <button className="primary-button" onClick={openAdd}><Plus size={18} /> Add application</button>
-          </div>
-
-          <div className="stats-grid">
-            {statCards.map(({ label, value, icon: Icon, tone }) => (
-              <article className="stat-card" key={label}>
-                <div className={`stat-icon ${tone}`}><Icon size={19} /></div>
-                <div className="stat-label">{label}</div><div className="stat-value">{value}</div>
-                <div className="stat-foot">{label === 'In progress' ? 'Shortlisted + interview' : label === 'Selected' ? 'Offers received' : label === 'Applied' ? 'Waiting for a response' : 'Across all statuses'}</div>
-              </article>
-            ))}
-          </div>
-
-          <section className="table-panel">
-            <div className="panel-heading"><div><h2>Application tracker</h2><p>Manage and review your job search activity.</p></div><div className="data-actions"><button className="soft-button" onClick={exportData}><Download size={16} /> Export</button><button className="soft-button" onClick={() => importRef.current?.click()}><FileUp size={16} /> Import</button><input ref={importRef} type="file" accept="application/json,.json" hidden onChange={importData} /></div></div>
-            <div className="toolbar">
-              <label className="search-box"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search company, role or location..." /></label>
-              <label className="select-wrap"><Filter size={15} /><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>All</option>{STATUSES.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={14} /></label>
-              <button className="soft-button sort-button" onClick={() => setSortOrder(v => v === 'newest' ? 'oldest' : 'newest')}><ArrowDownUp size={15} /> {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</button>
-            </div>
-
-            {filtered.length === 0 ? (
-              <div className="empty-state"><div className="empty-icon"><BriefcaseBusiness size={25} /></div><h3>{applications.length ? 'No matching applications' : 'Start tracking your journey'}</h3><p>{applications.length ? 'Try another search or status filter.' : 'Add your first application to keep all your job search details in one place.'}</p>{!applications.length && <button className="primary-button" onClick={openAdd}><Plus size={17} /> Add your first application</button>}</div>
-            ) : (
-              <div className="table-scroll"><table><thead><tr><th>COMPANY & ROLE</th><th>LOCATION</th><th>APPLIED DATE</th><th>STATUS</th><th>FOLLOW-UP</th><th></th></tr></thead><tbody>
-                {filtered.map(item => <tr key={item.id}>
-                  <td><div className="company-cell"><span className="company-logo">{(item.company || '?').slice(0, 1).toUpperCase()}</span><span><strong>{item.company}</strong><small>{item.role} · {item.type}</small></span></div></td>
-                  <td><span className="location-cell"><MapPin size={13} />{item.location || '—'}</span></td>
-                  <td>{formatDate(item.appliedDate)}</td>
-                  <td><span className={`status-pill status-${item.status.toLowerCase()}`}><i />{item.status}</span></td>
-                  <td>{formatDate(item.followUpDate)}</td>
-                  <td><div className="row-actions"><button className="icon-button" aria-label={`Edit ${item.company}`} onClick={() => openEdit(item)}><Pencil size={15} /></button><button className="icon-button danger-hover" aria-label={`Delete ${item.company}`} onClick={() => deleteApplication(item.id)}><Trash2 size={15} /></button>{item.jobUrl && <a className="icon-button" href={item.jobUrl} target="_blank" rel="noreferrer" aria-label="Open job link"><ExternalLink size={15} /></a>}</div></td>
-                </tr>)}
-              </tbody></table></div>
-            )}
-            <div className="table-footer"><span>Showing <b>{filtered.length}</b> of <b>{applications.length}</b> applications</span><span>Saved automatically <span className="saved-check"><Check size={12} /></span></span></div>
-          </section>
-          <footer className="page-footer">ApplyFlow <span>·</span> A simple space for your next opportunity.</footer>
-        </section>
-      </main>
-
-      {modalOpen && <div className="modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setModalOpen(false); }}>
-        <section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-          <div className="modal-header"><div><div className="eyebrow">APPLICATION DETAILS</div><h2 id="modal-title">{editingId ? 'Edit application' : 'Add application'}</h2></div><button className="icon-button" aria-label="Close" onClick={() => setModalOpen(false)}><X size={20} /></button></div>
-          <form onSubmit={saveApplication}>
-            <div className="form-grid">
-              <label>Company name *<input autoFocus required maxLength="80" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="e.g. Acme Technologies" /></label>
-              <label>Job role *<input required maxLength="100" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} placeholder="e.g. Frontend Developer" /></label>
-              <label>Location<input maxLength="100" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Chennai / Remote" /></label>
-              <label>Employment type<select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{['Full-time', 'Internship', 'Part-time', 'Contract', 'Remote'].map(v => <option key={v}>{v}</option>)}</select></label>
-              <label>Status<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{STATUSES.map(v => <option key={v}>{v}</option>)}</select></label>
-              <label>Applied date<input type="date" value={form.appliedDate} onChange={e => setForm({ ...form, appliedDate: e.target.value })} /></label>
-              <label>Follow-up / interview date<input type="date" value={form.followUpDate} onChange={e => setForm({ ...form, followUpDate: e.target.value })} /></label>
-              <label>Salary (optional)<input maxLength="50" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} placeholder="e.g. ₹3–5 LPA" /></label>
-              <label className="full-span">Job posting URL<input type="url" value={form.jobUrl} onChange={e => setForm({ ...form, jobUrl: e.target.value })} placeholder="https://..." /></label>
-              <label className="full-span">Notes<textarea rows="3" maxLength="1000" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Recruiter contact, interview details, next steps..." /></label>
-            </div>
-            <div className="modal-actions"><button type="button" className="soft-button" onClick={() => setModalOpen(false)}>Cancel</button><button type="submit" className="primary-button"><Check size={17} /> {editingId ? 'Save changes' : 'Save application'}</button></div>
-          </form>
-        </section>
-      </div>}
-      {toast && <div className="toast"><Check size={16} />{toast}</div>}
-    </div>
-  );
-}
-
 export default App;
