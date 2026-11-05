@@ -43,12 +43,16 @@ function App(){
  const [mobileNavOpen,setMobileNavOpen]=useState(false);
  const [jobFilter,setJobFilter]=useState('All');
  const [savedJobIds,setSavedJobIds]=useState([]);
+ const [easyJob,setEasyJob]=useState(null);
+ const [externalJob,setExternalJob]=useState(null);
+ const [selectedJob,setSelectedJob]=useState(null);
+ const [easyForm,setEasyForm]=useState({resumeUrl:'',coverNote:'',experienceExample:''});
  const importRef=useRef(null);
  const notify=(m)=>setToast(m);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(t)},[toast]);
  useEffect(()=>{localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(accounts))},[accounts]);
- useEffect(()=>{if(!session)return;const data=read(userKey(session),{profile:EMPTY_PROFILE,applications:[]});setProfile({...EMPTY_PROFILE,...data.profile});setApplications(Array.isArray(data.applications)?data.applications:[]);setProfileComplete(Boolean(data.profile?.fullName&&data.profile?.phone&&data.profile?.education&&data.profile?.skills));},[session]);
- useEffect(()=>{if(session){try{localStorage.setItem(userKey(session),JSON.stringify({profile,applications}))}catch{notify('Browser storage is full. Export your applications as a backup.')}}},[session,profile,applications]);
+ useEffect(()=>{if(!session)return;const data=read(userKey(session),{profile:EMPTY_PROFILE,applications:[]});setProfile({...EMPTY_PROFILE,...data.profile});setApplications(Array.isArray(data.applications)?data.applications:[]);setSavedJobIds(Array.isArray(data.savedJobIds)?data.savedJobIds:[]);setProfileComplete(Boolean(data.profile?.fullName&&data.profile?.phone&&data.profile?.education&&data.profile?.skills));},[session]);
+ useEffect(()=>{if(session){try{localStorage.setItem(userKey(session),JSON.stringify({profile,applications,savedJobIds}))}catch{notify('Browser storage is full. Export your applications as a backup.')}}},[session,profile,applications]);
  function setAuth(k,v){setAuthForm(s=>({...s,[k]:v}));setAuthError('')}
  async function submitAuth(e){e.preventDefault();setAuthError('');const email=authForm.email.trim().toLowerCase();if(!email||!/^\S+@\S+\.\S+$/.test(email)){setAuthError('Enter a valid email address.');return}
  if(authMode==='register'){if(!authForm.name.trim()){setAuthError('Enter your full name.');return}if(authForm.password.length<8){setAuthError('Use at least 8 characters for your password.');return}if(authForm.password!==authForm.confirm){setAuthError('Passwords do not match.');return}if(accounts.some(a=>a.email===email)){setAuthError('An account with this email already exists.');return}const account={name:authForm.name.trim(),email,passwordHash:await hashPassword(authForm.password)};setAccounts(a=>[...a,account]);localStorage.setItem(userKey(email),JSON.stringify({profile:{...EMPTY_PROFILE,fullName:account.name,email},applications:[]}));localStorage.setItem(SESSION_KEY,email);setSession(email);setProfile({...EMPTY_PROFILE,fullName:account.name,email});setProfileOpen(true);setTab('Dashboard');return}
