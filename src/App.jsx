@@ -56,6 +56,7 @@ function App(){
  const stats=useMemo(()=>({total:applications.length,applied:applications.filter(a=>a.status==='Applied').length,progress:applications.filter(a=>['Shortlisted','Interview'].includes(a.status)).length,selected:applications.filter(a=>a.status==='Selected').length}),[applications]);
  const filtered=useMemo(()=>{const term=query.trim().toLowerCase();return applications.filter(a=>statusFilter==='All'||a.status===statusFilter).filter(a=>!term||[a.company,a.role,a.location].some(v=>(v||'').toLowerCase().includes(term))).sort((a,b)=>sortOrder==='newest'?(b.appliedDate||'').localeCompare(a.appliedDate||''):(a.appliedDate||'').localeCompare(b.appliedDate||''))},[applications,query,statusFilter,sortOrder]);
  const appliedJobIds=new Set(applications.map(a=>a.jobId).filter(Boolean));
+ // Clear the current browser session without removing saved user data.
  function logout(){localStorage.removeItem(SESSION_KEY);setSession('');setAuthMode('login');setAuthForm({name:'',email:'',password:'',confirm:'',show:false});setTab('Dashboard')}
  function openAdd(){setEditingId(null);setForm({...EMPTY_FORM,appliedDate:new Date().toISOString().slice(0,10)});setModalOpen(true)}
  function openEdit(item){setEditingId(item.id);setForm({...EMPTY_FORM,...item});setModalOpen(true)}
