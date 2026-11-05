@@ -42,6 +42,7 @@ function App(){
  const [toast,setToast]=useState('');
  const [mobileNavOpen,setMobileNavOpen]=useState(false);
  const [jobFilter,setJobFilter]=useState('All');
+ const [savedJobIds,setSavedJobIds]=useState([]);
  const importRef=useRef(null);
  const notify=(m)=>setToast(m);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(t)},[toast]);
