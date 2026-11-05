@@ -152,3 +152,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .nav-item{width:100%;text-align:left}
 .nav-item svg{flex-shrink:0}
 @media(max-width:600px){.profile-view-grid{grid-template-columns:1fr}.panel{padding:16px}.insight-row{align-items:flex-start;flex-wrap:wrap}}
+
+
+/* ApplyFlow workspace completion: clear navigation and richer tool pages */
+.nav-item{background:transparent;color:#686b82;border-radius:10px;padding:13px 14px;margin:2px 0;transition:background .18s,color .18s,transform .18s}
+.nav-item:hover{background:#f6f5ff;color:#5d51d0;transform:translateX(2px)}
+.nav-item.active{background:#efedff;color:#5d51d0;box-shadow:inset 3px 0 0 #6558dc}
+.nav-caption{padding-bottom:12px}.compact-stats .stat-card{min-height:120px}
+.workspace-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.workspace-two-col .panel{min-width:0;margin-top:18px}
+.panel-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.panel-title-row h2{margin:0}
+.subtle-tag{font-size:10px;color:#6c62c9;background:#f1efff;border-radius:20px;padding:6px 9px;white-space:nowrap}.warning-tag{background:#fff4e8;color:#c9872c}
+.progress-row{margin:17px 0}.progress-label{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#65687c;margin-bottom:7px}.progress-label strong{color:#3a3c50}.progress-label small{font-size:10px;color:#a0a2b0;font-weight:500;margin-left:5px}
+.progress-track,.checklist-progress{height:8px;border-radius:20px;background:#f0f0f6;overflow:hidden}.progress-fill,.checklist-progress span{height:100%;display:block;border-radius:20px;background:#7165df;transition:width .2s}
+.status-fill-applied{background:#6093d8}.status-fill-shortlisted{background:#8a75dd}.status-fill-interview{background:#dfa449}.status-fill-selected{background:#3bb487}.status-fill-rejected{background:#d67a82}
+.company-name-row{display:flex;align-items:center;gap:9px}.small-logo{width:26px;height:26px;font-size:11px}.muted-block{display:block;color:#9a9cad;font-size:10px;margin-top:4px}
+.inline-hint{display:flex;align-items:center;gap:7px;color:#9295a7;font-size:10px;line-height:1.6;margin:14px 0 0}
+.empty-inline{display:grid;justify-items:center;gap:9px;text-align:center;color:#9699aa;padding:28px 12px;font-size:11px;line-height:1.6}.empty-inline p{margin:0;max-width:340px}.empty-inline svg{color:#786ddd}
+.text-action{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:#6558dc;font-size:10px;font-weight:700}
+.planner-item{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid #f0f0f5}.planner-item:last-child{border-bottom:0}
+.planner-date{width:44px;height:48px;flex:0 0 44px;border-radius:9px;background:#f0efff;color:#6558dc;display:grid;align-content:center;justify-items:center}.planner-date strong{font:800 17px Manrope}.planner-date span{font-size:9px;text-transform:uppercase}
+.planner-copy{display:grid;gap:3px;min-width:0;flex:1}.planner-copy strong{font-size:11px;color:#303248}.planner-copy span{font-size:10px;color:#6f7286}.planner-copy small{font-size:9px;color:#9a9cad}
+.overdue-label{font-size:10px;color:#c66d73;background:#fff0f0;border-radius:20px;padding:5px 8px}.interview-list{border-top:1px solid #f0f0f5;margin-top:12px;padding-top:13px}.interview-list h3{font:700 12px Manrope;margin:0 0 5px;color:#33354a}
+.checklist-progress{margin:16px 0}.prep-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.prep-check-item{display:flex;align-items:center;gap:9px;border:1px solid #eceef4;border-radius:9px;padding:11px;font-size:10px;color:#66697e;cursor:pointer;min-width:0}.prep-check-item input{accent-color:#6558dc;width:15px;height:15px;flex:0 0 auto}.prep-check-item span{flex:1;line-height:1.5}.prep-check-item>svg{color:#b3b5c2;opacity:.35;flex:0 0 auto}
+.prep-check-item.is-done{background:#f0fbf6;border-color:#d6f1e4;color:#368d6d}.prep-check-item.is-done>svg{color:#2ca477;opacity:1}
+.resume-score-card{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 25px;background:linear-gradient(120deg,#f0efff,#fafaff);border:1px solid #e9e7ff;border-radius:13px;margin-bottom:18px}
+.resume-score-copy strong{display:block;font:800 32px Manrope;color:#292b40;margin:7px 0}.resume-score-copy p{font-size:11px;color:#85889a;margin:0;line-height:1.5}
+.resume-score-ring{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#6558dc var(--score),#e0def7 0);position:relative;flex:0 0 auto}.resume-score-ring:before{content:"";position:absolute;inset:8px;border-radius:50%;background:#fafaff}.resume-score-ring span{z-index:1;font:800 15px Manrope;color:#5146be}
+.resume-check-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f0f0f5;font-size:11px;color:#626579}.resume-check-row strong{margin-left:auto;font-size:10px;color:#9699aa}
+.check-present,.check-missing{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}.check-present{background:#e7f8f0;color:#2ca477}.check-missing{background:#f3f3f7;color:#b4b6c3}
+.resume-actions,.settings-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:17px}.tip-list{display:grid;gap:15px;margin:14px 0}.tip-list>div{display:flex;align-items:flex-start;gap:10px;color:#6558dc}.tip-list span{display:grid;gap:4px}.tip-list strong{font-size:11px;color:#3c3e52}.tip-list small{font-size:10px;line-height:1.5;color:#9295a7}
+.settings-stat-value{font:700 13px Manrope;color:#292b40;overflow-wrap:anywhere;margin-top:8px}.danger-action{color:#bb626c;border-color:#f0dfe1}.danger-action:hover{background:#fff4f4;border-color:#eccdd0}
+@media(max-width:900px){.workspace-two-col{grid-template-columns:1fr}}
+@media(max-width:760px){.workspace-two-col{gap:0}.workspace-two-col .panel{margin-top:13px}.prep-checklist{grid-template-columns:1fr}.resume-score-card{padding:18px}.resume-score-ring{width:74px;height:74px}.panel-title-row{align-items:flex-start;flex-wrap:wrap}.compact-stats .stat-card{min-height:112px}.settings-actions>*{flex:1 1 145px}.job-card-top{gap:8px}}
+@media(max-width:430px){.resume-score-card{align-items:flex-start}.resume-score-ring{width:64px;height:64px}.resume-score-ring:before{inset:6px}.resume-score-ring span{font-size:12px}.planner-item{gap:8px}.planner-date{width:39px;flex-basis:39px}.subtle-tag{font-size:9px}}
